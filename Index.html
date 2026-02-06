@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Adi Run – Prepreke i Muki</title>
+<style>
+body{margin:0;overflow:hidden;background:#111;font-family:Arial;}
+canvas{display:block;}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+function resize(){canvas.width = window.innerWidth; canvas.height = window.innerHeight;}
+window.addEventListener('resize',resize);
+resize();
+
+const GROUND = 80;
+let world = 0;
+let gravity = 0.7;
+let finished = false;
+let message = '';
+let messageTimer = null;
+
+// PLAYER
+const adi = {x:140, y:0, vy:0, color:'#4da6ff', name:'Adi', speed:3.5, jumpPower:-13};
+
+// NPCs – Ajla i Džana
+const girls = [
+  {name:'Ajla', x:adi.x - 100, color:'#ff6fae', offsetName:0},
+  {name:'Džana', x:adi.x - 110, color:'#ffb347', offsetName:15}
+];
+
+// MAP POINTS
+const schoolX=800;
+const dialogueX=1500;
+const bridgeX=2000;
+const cafeX=3200;
+
+// NPC pored škole (Mahir i Vega)
+const schoolNPCs = [
+  {name:'Mahir', x:schoolX+350, color:'#3498db'},
+  {name:'Vega', x:schoolX+420, color:'#f1c40f'}
+];
+
+// NPC Muki prije Gallanta
+const muki = {name:'Muki', x:cafeX-400, color:'#8e44ad', text:'Uzmi mi Bon od 5'};
+
+// lagane prepreke
+const obstacles = [
+  {x:500, y:canvas.height-GROUND-30, width:30, height:30},
+  {x:900, y:canvas.height-GROUND-30, width:30, height:30},
+  {x:1300, y:canvas.height-GROUND-30, width:30, height:30},
+  {x:1800, y:canvas.height-GROUND-30, width:30, height:30},
+  {x:2500, y:canvas.height-GROUND-30, width:30, height:30},
+];
+
+// RESET
+function reset(){
+  adi.y = canvas.height-GROUND-50;
+  adi.vy = 0;
+  adi.speed = 3.5;
+  girls[0].x = adi.x - 100;
+  girls[1].x = adi.x - 110;
+  world = 0;
+  finished = false;
+  message = '';
+  if(messageTimer) clearTimeout(messageTimer);
+}
+
+// UPDATE
+function update(){
+  if(finished) return;
+
+  world += adi.speed;
+
+  // Adi physics
+  adi.vy += gravity;
+  adi.y += adi.vy;
+  if(adi.y > canvas.height-GROUND-50) adi.y = canvas.height-GROUND-50;
+
+  // NPCs drže udaljenost
+  girls[0].x = adi.x - 100;
+  girls[1].x = adi.x - 110;
+
+  // check obstacles collision
+  obstacles.forEach(o=>{
+    const ox = o.x - world;
+    if(adi.x + 10 > ox && adi.x - 10 < ox + o.width && adi.y + 25 > o.y){
+      // prikazuje poruku "Uhvatile smo te" na 1.5 sek
+      showMessage('Uhvatile smo te');
+    }
+  });
+
+  // finish
+  if(world > cafeX-200) finished = true;
+}
+
+// DRAW SUPER MARIO STYLE STICKMAN
+function drawStickman(x,y,color,name,offsetName=0){
+  ctx.fillStyle = color;
+  ctx.fillRect(x-10,y-20,20,20);
+  ctx.fillRect(x-5,y,10,25);
+  ctx.fillRect(x-12,y+5,5,15);
+  ctx.fillRect(x+7,y+5,5,15);
+  ctx.fillRect(x-5,y+25,5,15);
+  ctx.fillRect(x,  y+25,5,15);
+  ctx.fillStyle='#fff';
+  ctx.font='12px Arial';
+  ctx.fillText(name,x-18,y-25-offsetName);
+}
+
+// DRAW
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // ground
+  ctx.fillStyle='#2ecc71';
+  ctx.fillRect(0,canvas.height-GROUND,canvas.width,GROUND);
+
+  // school
+  const sx = schoolX - world;
+  if(sx>-300 && sx<canvas.width){
+    ctx.fillStyle='#555';
+    ctx.fillRect(sx,canvas.height-GROUND-150,280,150);
+    ctx.fillStyle='#fff';
+    ctx.fillText('ŠKOLA IGMAN',sx+70,canvas.height-GROUND-120);
+
+    // Mahir i Vega
+    schoolNPCs.forEach(n=>{
+      const nx = n.x - world;
+      ctx.fillStyle='#fff';
+      ctx.font='14px Arial';
+      ctx.fillText('Bježi Tradicija',nx-30,canvas.height-GROUND-110); 
+      drawStickman(nx,canvas.height-GROUND-50,n.color,n.name);
+    });
+  }
+
+  // Dijalog
+  const dx = dialogueX - world;
+  if(dx>-300 && dx<canvas.width){
+    ctx.fillStyle='#fff';
+    ctx.font='16px Arial';
+    ctx.fillText('Dijalog',dx+100,canvas.height-GROUND-100);
+  }
+
+  // bridge
+  const bx = bridgeX - world;
+  if(bx>-300 && bx<canvas.width){
+    ctx.fillStyle='#7f8c8d';
+    ctx.fillRect(bx,canvas.height-GROUND-50,300,50);
+    ctx.fillStyle='#fff';
+    ctx.font='16px Arial';
+    ctx.fillText('ĆUPRIJA',bx+100,canvas.height-GROUND-70);
+  }
+
+  // cafe
+  const cx = cafeX - world;
+  if(cx>-300 && cx<canvas.width){
+    ctx.fillStyle='#c0392b';
+    ctx.fillRect(cx,canvas.height-GROUND-120,260,120);
+    ctx.fillStyle='#fff';
+    ctx.fillText('CAFFE GALLANT',cx+60,canvas.height-GROUND-90);
+  }
+
+  // draw obstacles
+  obstacles.forEach(o=>{
+    const ox = o.x - world;
+    ctx.fillStyle='#e67e22';
+    ctx.fillRect(ox,o.y,o.width,o.height);
+  });
+
+  // characters
+  drawStickman(adi.x,adi.y,adi.color,adi.name);
+  girls.forEach(g=>drawStickman(g.x,canvas.height-GROUND-50,g.color,g.name,g.offsetName));
+
+  // draw Muki
+  const mx = muki.x - world;
+  if(mx>-50 && mx<canvas.width){
+    ctx.fillStyle='#fff';
+    ctx.font='14px Arial';
+    ctx.fillText(muki.text,mx-40,canvas.height-GROUND-120);
+    drawStickman(mx,canvas.height-GROUND-50,muki.color,muki.name);
+  }
+
+  // message
+  if(message!==''){
+    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#fff';
+    ctx.font='26px Arial';
+    ctx.fillText(message,canvas.width/2-120,canvas.height/2);
+  }
+
+  // finished
+  if(finished){
+    ctx.fillStyle='rgba(0,0,0,0.7)';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#fff';
+    ctx.font='26px Arial';
+    ctx.fillText('ADI JE UŠAO U GALLANT ☕',canvas.width/2-180,canvas.height/2);
+  }
+}
+
+// helper show message
+function showMessage(msg){
+  message = msg;
+  if(messageTimer) clearTimeout(messageTimer);
+  messageTimer = setTimeout(()=>{message='';},1500);
+}
+
+// TOUCH CONTROL
+window.addEventListener('touchstart',()=>{
+  if(finished || message!=='') reset();
+  else if(adi.y>=canvas.height-GROUND-50) adi.vy=adi.jumpPower;
+});
+
+// START
+reset();
+(function loop(){update();draw();requestAnimationFrame(loop);})();
+</script>
+</body>
+</html>
